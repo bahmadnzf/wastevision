@@ -1,0 +1,62 @@
+# WasteVision training configuration.
+# Passed straight through to ultralytics' YOLO().train(**kwargs), plus a
+# couple of WasteVision-specific fields (data, project, experiment_name,
+# mlflow_tracking_uri) consumed by src/models/train.py itself.
+
+# --- Data ---
+data: data/processed/data.yaml
+
+# --- Model ---
+# Progression used during development: n (fast iteration) -> s -> m (final).
+# Start at nano to validate the pipeline end-to-end cheaply, then move up.
+model: yolov8n.pt
+
+# --- Core training hyperparameters ---
+epochs: 100
+imgsz: 640
+batch: 16
+patience: 20          # early stopping patience (epochs with no mAP50-95 improvement)
+optimizer: auto        # ultralytics picks SGD/AdamW based on dataset size
+seed: 42
+device: 0               # GPU index; falls back to CPU automatically if unavailable
+workers: 8
+
+# --- Augmentation ---
+# TACO is small (~1500 images) and real-world/cluttered, so augmentation is
+# pushed a bit harder than YOLO's defaults to reduce overfitting, but
+# mosaic is disabled for the final epochs (see train.py) since heavy mosaic
+# can hurt small-object localization late in training.
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 5.0
+translate: 0.1
+scale: 0.5
+fliplr: 0.5
+mosaic: 1.0
+close_mosaic: 10        # disable mosaic for the last N epochs
+mixup: 0.1
+
+# --- Loss weighting ---
+# Slightly upweighted box loss: litter items are frequently small in frame
+# (TACO's own stats show cigarette/plastic-film-type objects are often a
+# small fraction of image area), so localization precision matters more
+# here than in a typical COCO-scale object.
+box: 8.0
+cls: 0.5
+dfl: 1.5
+
+# --- Experiment tracking ---
+project: runs/train
+experiment_name: wastevision
+mlflow_tracking_uri: mlruns   # local file store; point at a server URI for team use
+
+# --- Class imbalance note (see CASE_STUDY.md section 3) ---
+# YOLOv8 does not expose a first-class per-class loss weight in this config
+# surface. If per-class AP in evaluate.py shows a badly underperforming
+# minority group (organic/textile are the smallest groups after the 60->8
+# collapse), the two adjustment levers are: (1) oversample images whose
+# dominant group is that minority class when building data.yaml's train
+# split, or (2) increase `cls` above to push classification loss harder
+# overall. Try (1) first — it's cheaper to iterate on than a full retrain
+# sweep over loss weights.

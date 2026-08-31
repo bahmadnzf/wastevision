@@ -1,0 +1,16 @@
+# Core
+numpy>=1.24
+pyyaml>=6.0
+pillow>=10.0
+
+# Training / inference
+ultralytics>=8.2
+mlflow>=2.10
+
+# API
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+
+# Demo
+gradio>=4.20

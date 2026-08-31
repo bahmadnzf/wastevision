@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: wastevision-api
+    ports:
+      - "8000:8000"
+    environment:
+      - WASTEVISION_WEIGHTS=/app/models/best.pt
+    volumes:
+      - ./models:/app/models:ro
+    restart: unless-stopped
+
+  demo:
+    build:
+      context: .
+      dockerfile: Dockerfile.gradio
+    container_name: wastevision-demo
+    ports:
+      - "7860:7860"
+    environment:
+      - WASTEVISION_WEIGHTS=/app/models/best.pt
+    volumes:
+      - ./models:/app/models:ro
+    depends_on:
+      - api
+    restart: unless-stopped
